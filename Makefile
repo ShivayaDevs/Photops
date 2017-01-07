@@ -14,7 +14,7 @@ NVCC_OPTS=-O3 -arch=sm_20 -Xcompiler -m64 -Wno-deprecated-gpu-targets `pkg-confi
 GCC_OPTS=-O3 -m64 `pkg-config --cflags --libs opencv`
 
 photops: main.o load_save.o blur_ops.o filter_ops.o mirror_ops.o square_ops.o Makefile
-	$(NVCC) -o photops main.o load_save.o blur_ops.o filter_ops.o mirror_ops.o square_ops.o -L $(OPENCV_LIBPATH) $(NVCC_OPTS)
+	$(NVCC) -o photops main.o load_save.o blur_ops.o filter_ops.o mirror_ops.o square_ops.o -L $(OPENCV_LIBPATH) -lboost_program_options $(NVCC_OPTS)
 
 main.o: main.cpp include/load_save.h include/square_ops.h include/mirror_ops.h include/blur_ops.h include/filter_ops.h
 	g++ -c main.cpp $(GCC_OPTS) -I $(CUDA_INCLUDEPATH)
