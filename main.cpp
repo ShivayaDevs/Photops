@@ -28,7 +28,7 @@ int main(int argc, char **argv){
   options_description desc("Allowed Options");
   desc.add_options()
     ("help,h",  "Display help screen")
-    ("output,o", value<string>()->default_value("output.jpg"), "Specify output file")
+    ("output,o", value<string>()->default_value("images/output.jpg"), "Specify output file")
     ("blur,b",  "Blur the image")
     ("mirror,m", value<char>(), "Mirror the image")
     ("square,s", "Square the image by attaching strips")
@@ -84,6 +84,8 @@ int main(int argc, char **argv){
     string filter = vm["filter"].as<string>();
     // Call the apply_filter function here
     // @param h_image numRows numCols filter_name
+    unsigned char* h_out = apply_filter(&h_image, numRows, numCols, filter);
+    saveImageGrey(h_out, output_file, numRows,numCols);
   }
-
+  // saveImageRGBA(h_image, output_file, numRows, numCols);
 }

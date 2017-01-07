@@ -10,4 +10,7 @@ void loadImageRGBA(std::string &filename, uchar4 **imagePtr,
 void saveImageRGBA(uchar4* image, std::string &output_filename,
                    size_t numRows, size_t numCols);
 
+unsigned char* saveImageGrey(unsigned char* image, std::string &output_filename,
+                   size_t numRows, size_t numCols);
+
 #endif
