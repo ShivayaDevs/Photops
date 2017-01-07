@@ -1,0 +1,8 @@
+# Testing folder, contains temporary files.
+temp/
+
+# Object code
+*.o
+
+# Executable
+photops
