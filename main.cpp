@@ -65,19 +65,24 @@ int main(int argc, char **argv){
     // Call the blur function here
     // @param h_image numRows numCols amount
   }
-  else if(vm.count("sqBlur")){
-    int amount = vm["amount"].as<int>();
-    // Call the square blur function here
-    // @param h_image numRows numCols amount 
-  }
   else if(vm.count("mirror")){
     bool isVertical = ((vm["mirror"].as<char>() == 'v') ? true:false);
     // Call the mirror function here
     // @param h_image numRows numCols isVertical
   }
+  else if(vm.count("sqBlur")){
+    int amount = vm["amount"].as<int>();
+    // Call the square blur function here
+    // @param h_image numRows numCols amount 
+  }
+  else if(vm.count("square")){
+    string color = vm["color"].as<string>();
+    // Call the square_image function here
+    // @param h_image numRows numCols strip_color  
+  }
   else if(vm.count("filter")){
     string filter = vm["filter"].as<string>();
-    // Call the mirror function here
+    // Call the apply_filter function here
     // @param h_image numRows numCols filter_name
   }
 
