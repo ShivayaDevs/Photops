@@ -21,6 +21,20 @@
 using namespace std;
 using namespace boost::program_options;
 
+size_t numRows, numCols;
+
+uchar4* load_image_in_GPU(string filename)
+{ // Load the image into main memory
+  uchar4 *h_image, *d_in;
+  loadImageRGBA(filename, &h_image, &numRows, &numCols);
+  // Allocate memory to the GPU
+  cudaMalloc((void **) &d_in, numRows * numCols * sizeof(uchar4));
+  cudaMemcpy(d_in, h_image, numRows * numCols * sizeof(uchar4), cudaMemcpyHostToDevice);
+  // No need to keep this image in RAM now.
+  free(h_image);
+  return d_in;
+}
+
 int main(int argc, char **argv){
 
   // Using boost library to parse commandline arguments.
@@ -28,7 +42,7 @@ int main(int argc, char **argv){
   options_description desc("Allowed Options");
   desc.add_options()
     ("help,h",  "Display help screen")
-    ("output,o", value<string>()->default_value("output.jpg"), "Specify output file")
+    ("output,o", value<string>()->default_value("images/output.jpg"), "Specify output file")
     ("blur,b",  "Blur the image")
     ("mirror,m", value<char>(), "Mirror the image")
     ("square,s", "Square the image by attaching strips")
@@ -54,10 +68,7 @@ int main(int argc, char **argv){
   string input_file = string(argv[1]);
   string output_file = vm["output"].as<string>();
   
-  // Load the image into memory
-  uchar4 *h_image;
-  size_t numRows, numCols;
-  loadImageRGBA(input_file, &h_image, &numRows, &numCols);
+  uchar4 *d_in = load_image_in_GPU(input_file);
 
   // Performing the required operation
   if(vm.count("blur")){
@@ -81,9 +92,10 @@ int main(int argc, char **argv){
     // @param h_image numRows numCols strip_color  
   }
   else if(vm.count("filter")){
-    string filter = vm["filter"].as<string>();
-    // Call the apply_filter function here
-    // @param h_image numRows numCols filter_name
+    string filter_name = vm["filter"].as<string>();
+    uchar4* h_out = apply_filter(d_in, numRows, numCols, filter_name);
+    saveImageRGBA(h_out, output_file, numRows,numCols);
+    cout<<filter_name<<" filter applied. Output File: "<<output_file<<"\n";
   }
-
+  cudaFree(d_in);
 }
