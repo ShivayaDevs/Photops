@@ -96,7 +96,9 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
   cudaMalloc(&d_sq, sizeof(uchar4)*newSize);
 	square<<<gridSize, blockSize>>>(d_image, d_sq, numRows, numCols, n_numRows, n_numCols, color);
 
-  return d_sq;
+  uchar4 *h_out = new uchar4[n_numRows * n_numCols * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_sq, n_numRows * n_numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  return h_out; 
 }
 
 
@@ -131,6 +133,8 @@ uchar4* square_blur(uchar4* const d_image, size_t numRows, size_t numCols, size_
   cudaMemcpy(d_filter, h_filter, sizeof(float) * blurKernelWidth * blurKernelWidth, cudaMemcpyHostToDevice);
 
   square_blur<<<gridSize, blockSize>>>(d_image, d_sq, d_filter, filterWidth, numRows, numCols, n_numRows, n_numCols);
-  
-  return d_sq;
+
+  uchar4 *h_out = new uchar4[n_numRows * n_numCols * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_sq, n_numRows * n_numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  return h_out; 
 }
