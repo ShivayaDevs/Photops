@@ -18,10 +18,10 @@ void square(const uchar4* d_in, uchar4* d_sq, uchar4 color, size_t numRows, size
     
 	int y = blockDim.x*blockIdx.x + threadIdx.x;	//column
 	int x = blockDim.y*blockIdx.y + threadIdx.y;	//row
-	int index = x*numRows + y;										//previous index of pixel
-	int n_index = x*n_numRows + y;								//new index of pixel
+	int index = x*numRows + y;			//previous index of pixel
+	int n_index = x*n_numRows + y;			//new index of pixel
 
-	if(y >= n_numCols || x >= n_numRows)  				//check out of bound
+	if(y >= n_numCols || x >= n_numRows)  		//check out of bound
 	  return;
 
 	if(y < numCols && x < numRows)								
@@ -38,7 +38,7 @@ void square(const uchar4* d_in, uchar4* d_sq, uchar4 color, size_t numRows, size
 uchar4* square(const uchar4 * const h_image, uchar4 * const d_image, uchar4 color, size_t numRows, size_t numCols, 
 							size_t &n_numRows, size_t &n_numCols)
 {
-	size_t size, newSize;
+  size_t size, newSize;
   const dim3 blockSize(64, 64, 1);  
   const dim3 gridSize(numRows/blockSize.x+1, numCols/blockSize.y+1,1);  
   size = numRows*numCols;
