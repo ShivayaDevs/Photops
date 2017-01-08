@@ -26,13 +26,13 @@ __global__ void greyscale(const uchar4* const d_color, uchar4* d_grey, size_t nu
 }
 
 __device__ double get_distance_between(double x1, double y1,
-                                                double x2, double y2){
+                                       double x2, double y2){
   return sqrt(pow(x1-x2, 2) + pow(y1-y2, 2));
 }
 
 // Kernel : Vignette
 __global__ void vignette(const uchar4* const d_in, uchar4* d_vignette,
-                         const size_t numRows, const size_t numCols, double max_dist)
+                         const size_t numRows, const size_t numCols)
 {
   int thread_x = blockDim.x * blockIdx.x + threadIdx.x;
   int thread_y = blockDim.y * blockIdx.y + threadIdx.y;
@@ -42,7 +42,7 @@ __global__ void vignette(const uchar4* const d_in, uchar4* d_vignette,
   int myId = thread_y * numCols + thread_x; 
   
   // Generating mask
-  const double max_image_radius = 1.0 * max_dist;
+  const double max_image_radius = 1.0 * sqrt((pow((double)numRows, 2) + pow((double)numCols, 2)) / 4);
   const double power = 0.7;
 
   double dist_from_center = get_distance_between(numRows/2, numCols/2, thread_x, thread_y) / max_image_radius;  
@@ -68,8 +68,7 @@ uchar4* apply_filter(uchar4 *d_in, const size_t numRows, const size_t numCols, s
     greyscale<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols);
   }
   else if(filtername == "vignette"){
-    double max_dist = sqrt((pow((double)numRows, 2) + pow((double)numCols, 2)) / 4);
-    vignette<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols, max_dist);
+    vignette<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols);
   }
 
   uchar4* h_out = new uchar4[numRows * numCols];
