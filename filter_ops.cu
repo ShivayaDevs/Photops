@@ -35,18 +35,18 @@ __global__ void vignette(const uchar4* const d_in, uchar4* d_vignette,
   if(myId >= num_pixels)
     return;
 
-  // Generating mask
-  const double max_image_radius = 1.0 * max_dist;
-  const double power = 0.8;
+  // // Generating mask
+  // const double max_image_radius = 1.0 * max_dist;
+  // const double power = 0.8;
 
-  double dist_from_center = sqrt(pow((double)));//TODO: calculate
-  temp = (temp * power) / max_image_radius;
-  temp = pow(cos(temp), 4); 
+  // double dist_from_center = sqrt(pow((double)));//TODO: calculate
+  // temp = (temp * power) / max_image_radius;
+  // temp = pow(cos(temp), 4); 
 
 
-  uchar4 rgba = d_in[myId];
-  // Get RGBA to Lab
-  // Luminance *= temp 
+  // uchar4 rgba = d_in[myId];
+  // // Get RGBA to Lab
+  // // Luminance *= temp 
 
 }
 

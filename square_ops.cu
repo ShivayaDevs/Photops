@@ -31,7 +31,8 @@ void square(const uchar4* d_in, uchar4* d_sq, size_t numRows, size_t numCols, si
 }
 
 __global__ 
-void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, const int filterWidth, size_t numRows, size_t numCols,      size_t n_numRows, size_t n_numCols)
+void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, const int filterWidth, 
+                 size_t numRows, size_t numCols,  size_t n_numRows, size_t n_numCols)
 {
 	int y = blockDim.x*blockIdx.x + threadIdx.x;  //column
 	int x = blockDim.y*blockIdx.y + threadIdx.y;	//row
@@ -123,13 +124,13 @@ uchar4* square_blur(uchar4* const d_image, size_t numRows, size_t numCols, size_
   /*setting the filter: we need to change blurkernelWidth and blurKernelSigma to change the filter */
   float* h_filter;
   size_t filterWidth;
-  setFilter(&h_filter, &filterWidth, blurKernelWidth, blurKernelSigma);
+  // setFilter(&h_filter, &filterWidth, blurKernelWidth, blurKernelSigma);
 
   float *d_filter; 	//creating device copy of h_filter
   cudaMalloc(&d_filter, sizeof(float) * blurKernelWidth * blurKernelWidth);
   cudaMemcpy(d_filter, h_filter, sizeof(float) * blurKernelWidth * blurKernelWidth, cudaMemcpyHostToDevice);
 
-  square_blur<<<gridSize, blockSize>>>(d_image, d_sq, numRows, numCols, n_numRows, n_numCols, d_filter, filterWidth);
+  square_blur<<<gridSize, blockSize>>>(d_image, d_sq, d_filter, filterWidth, numRows, numCols, n_numRows, n_numCols);
   
   return d_sq;
 }

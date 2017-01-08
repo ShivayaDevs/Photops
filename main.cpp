@@ -88,6 +88,9 @@ int main(int argc, char **argv){
   }
   else if(vm.count("square")){
     string color = vm["color"].as<string>();
+    size_t n_numRows, n_numCols;
+    uchar4* h_out = square(d_in, numRows, numCols, n_numRows, n_numCols, make_uchar4(255,255,255,255));
+    saveImageRGBA(h_out, output_file, n_numRows,n_numCols);
     // Call the square_image function here
     // @param h_image numRows numCols strip_color  
   }
