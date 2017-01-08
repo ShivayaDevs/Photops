@@ -56,10 +56,3 @@ void saveImageRGBA(uchar4* image, string &output_filename,
   // Writing the image
   imwrite(output_filename.c_str(), imageOutputBGR);
 }
-
-void saveImageGrey(unsigned char* image, string &output_filename,
-                   size_t numRows, size_t numCols)
-{
-  Mat imageGrey(numRows, numCols, CV_8UC1, (void *)image);
-  imwrite(output_filename.c_str(), imageGrey); 
-}
