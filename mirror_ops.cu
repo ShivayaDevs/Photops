@@ -18,7 +18,7 @@ unsigned char *d_red, *d_green, *d_blue;
 __global__
 void mirror(const unsigned char* const inputChannel,
                    unsigned char* const outputChannel,
-                   int numRows, int numCols)
+                   int numRows, int numCols, bool vertical)
 {
 
   __shared__ unsigned char sharedBlockA[4][4];   // 1. shared memory for reverse swap
@@ -38,20 +38,32 @@ void mirror(const unsigned char* const inputChannel,
   
   int dX = numCols;	//  the pictures width
   int dY = numRows;	//  the pictures height
-  
-  int blockIdxA = blockIdx.x * blockDim.x + blockIdx.y * blockDim.y * dX;	 //  begin read
-  int blockIdxB = dX * dY - blockIdxA - blockDim.y * dX - blockDim.x;		 //  store data
-  
-  
-  sharedBlockA[ty][tx] = inputChannel[blockIdxA + ty * dX + tx];  // linear data fetch from global memory
 
-	__syncthreads ();   // wait for all threads to reach this point
-	
-  sharedBlockB[ty][tx] = sharedBlockA[3-ty][3-tx]; // mirror each element in the cache
+  if(vertical)
+  {
+  	int blockIdxA = blockIdx.x * blockDim.x + blockIdx.y * blockDim.y * dX;	 //  begin read
+  	int blockIdxB = dX * dY - blockIdxA - blockDim.y * dX - blockDim.x;		 //  store data
+  
+  	sharedBlockA[ty][tx] = inputChannel[blockIdxA + ty * dX + tx];  // linear data fetch from global memory
+		__syncthreads ();   // wait for all threads to reach this point
+		sharedBlockB[ty][tx] = sharedBlockA[3-ty][3-tx]; // mirror each element in the cache
+		__syncthreads();   // wait for all threads to reach this point
 
-	__syncthreads();   // wait for all threads to reach this point
+   	outputChannel[blockIdxB + ty * dX + tx] = sharedBlockB[ty][tx];   // linear data store in global memory
+  }
 
-   outputChannel[blockIdxB + ty * dX + tx] = sharedBlockB[ty][tx];   // linear data store in global memory
+  else
+  {
+  	int blockIdxA = blockIdx.x * blockDim.x + blockIdx.y * blockDim.y * dX;	 //  begin read
+  	int blockIdxB = blockIdx.y * blockDim.y * dX + dX*blockDim.y - blockIdx.x*blockDim.x - blockDim.x*blockDim.y; //  store data
+  
+  	sharedBlockA[ty][tx] = inputChannel[blockIdxA + ty * dX + tx];  // linear data fetch from global memory
+		__syncthreads ();   // wait for all threads to reach this point
+		sharedBlockB[ty][tx] = sharedBlockA[ty][3-tx]; // mirror each element in the cache
+		__syncthreads();   // wait for all threads to reach this point
+
+   	outputChannel[blockIdxB + ty * dX + tx] = sharedBlockB[ty][tx];   // linear data store in global memory
+  }
 
 }
 
@@ -129,7 +141,7 @@ void cleanup() {
   checkCudaErrors(cudaFree(d_blue));
 }
 
-uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols)
+uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, bool vertical)
 {
 	//Set reasonable block size (i.e., number of threads per block)
 
@@ -164,13 +176,14 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols)
   cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
 
   //Call mirror kernel here 3 times, once for each color channel.
-  mirror<<<gridSize, blockSize>>>(d_red, d_redBlurred, numRows, numCols);
-  mirror<<<gridSize, blockSize>>>(d_green, d_greenBlurred, numRows, numCols);
-  mirror<<<gridSize, blockSize>>>(d_blue, d_blueBlurred, numRows, numCols);
+  mirror<<<gridSize, blockSize>>>(d_red, d_redBlurred, numRows, numCols, vertical);
+  mirror<<<gridSize, blockSize>>>(d_green, d_greenBlurred, numRows, numCols, vertical);
+  mirror<<<gridSize, blockSize>>>(d_blue, d_blueBlurred, numRows, numCols, vertical);
+
 
   cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
 
-  //Now we recombine your results.
+  //Now we recombine the results.
 
   recombineChannels<<<gridSize, blockSize>>>(d_redBlurred,
                                              d_greenBlurred,
