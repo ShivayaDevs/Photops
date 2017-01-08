@@ -18,10 +18,10 @@ void square(const uchar4* d_in, uchar4* d_sq, size_t numRows, size_t numCols, si
 {
  	int y = blockDim.x*blockIdx.x + threadIdx.x;	//column
 	int x = blockDim.y*blockIdx.y + threadIdx.y;	//row
-	int index = x*numRows + y;										//previous index of pixel
-	int n_index = x*n_numRows + y;								//new index of pixel
+	int index = x*numRows + y;			//previous index of pixel
+	int n_index = x*n_numRows + y;			//new index of pixel
 
-	if(y >= n_numCols || x >= n_numRows)  				//check out of bound
+	if(y >= n_numCols || x >= n_numRows)  		//check out of bound
 	  return;
 
 	if(y < numCols && x < numRows)								
@@ -35,8 +35,13 @@ void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, 
 {
 	int y = blockDim.x*blockIdx.x + threadIdx.x;  //column
 	int x = blockDim.y*blockIdx.y + threadIdx.y;	//row
+<<<<<<< HEAD
 	int index = x*numRows + y;										//previous index of pixel
 	int n_index = x*n_numRows + y;						//new index of pixel
+=======
+	int index = x*numRows + y;			//previous index of pixel
+	int n_index = x*n_numRows + y;			//new index of pixel
+>>>>>>> 18b619da565132eea157321ca4790c3e1ab5fdf0
 
 	if(y >= n_numCols || x >= n_numRows)  		//check out of bound
 	  return;
@@ -45,15 +50,16 @@ void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, 
 	  d_sq[n_index] = d_in[index];
 	else
 	{
-	  int prev_x = x - (n_numRows - numRows);		//finding pixel to blurr
+	  int prev_x = x - (n_numRows - numRows);	//finding pixel to blurr
 	  int prev_y = y - (n_numCols - numCols);
 	  int prev_index = prev_x * numRows + prev_y;
 
 	  uchar4 sum = make_uchar4(0,0,0,225);
-    for(int px = 0; px < filterWidth; px++)		//calculating new pixel intensity
+    	  for(int px = 0; px < filterWidth; px++)	//calculating new pixel intensity
 	  {
 	    for(int py = 0; py < filterWidth; py++)
 	    {
+<<<<<<< HEAD
        	int row = x + px - (filterWidth/2);
         int col = y + py - (filterWidth/2);
         row = min( max(0,row), static_cast<unsigned int>(numCols-1));
@@ -61,8 +67,17 @@ void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, 
         sum.x+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].x ) );
         sum.y+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].y ) );
         sum.z+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].z ) );
+=======
+		int row = x + px - (filterWidth/2);
+		int col = y + py - (filterWidth/2);
+		row = min( max(0,row), static_cast<unsigned int>(numCols-1));
+		col = min( max(0,col), static_cast<unsigned int>(numRows-1));
+		sum.x+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].x ) );
+		sum.y+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].y ) );
+		sum.z+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].z ) );
+>>>>>>> 18b619da565132eea157321ca4790c3e1ab5fdf0
 	    }
-  	}
+  	  }
 
   	d_sq[n_index] = sum;
 	}
@@ -72,6 +87,7 @@ void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, 
 	n_numRows and n_numCols are the new row and column sizes
 	d_sq represents output image intensities
 */
+<<<<<<< HEAD
 
 uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_numRows, size_t &n_numCols, uchar4 color)
 {
@@ -102,6 +118,12 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
 uchar4* square_blur(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_numRows, size_t &n_numCols, int blurKernelWidth, float blurKernelSigma)
 {
 	size_t newSize;
+=======
+uchar4* square(const uchar4* const h_image, uchar4* const d_image, uchar4 color, size_t numRows, size_t numCols, 
+	size_t &n_numRows, size_t &n_numCols, bool blurr, int blurr_amount, const float* const d_filter, const size_t filterWidth)
+{
+  size_t size, newSize;
+>>>>>>> 18b619da565132eea157321ca4790c3e1ab5fdf0
   const dim3 blockSize(64, 64, 1);  
   const dim3 gridSize(numRows/blockSize.x+1, numCols/blockSize.y+1,1);  
   
