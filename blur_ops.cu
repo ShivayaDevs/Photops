@@ -226,7 +226,7 @@ uchar4* blur_ops(const uchar4* const h_in, size_t numRows, size_t numCols, int b
                                              d_outputImageRGBA,
                                              numRows,
                                              numCols);
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
 
   //cleanup memory
   cleanup();
