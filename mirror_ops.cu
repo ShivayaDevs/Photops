@@ -129,16 +129,16 @@ void allocateMemoryAndCopyToGPU(const size_t numRowsImage, const size_t numColsI
 
   //allocate memory for the three different channels
   //original
-  checkCudaErrors(cudaMalloc(&d_red,   sizeof(unsigned char) * numRowsImage * numColsImage));
-  checkCudaErrors(cudaMalloc(&d_green, sizeof(unsigned char) * numRowsImage * numColsImage));
-  checkCudaErrors(cudaMalloc(&d_blue,  sizeof(unsigned char) * numRowsImage * numColsImage));
+  cudaMalloc(&d_red,   sizeof(unsigned char) * numRowsImage * numColsImage);
+  cudaMalloc(&d_green, sizeof(unsigned char) * numRowsImage * numColsImage);
+  cudaMalloc(&d_blue,  sizeof(unsigned char) * numRowsImage * numColsImage);
 
 }
 
 void cleanup() {
-  checkCudaErrors(cudaFree(d_red));
-  checkCudaErrors(cudaFree(d_green));
-  checkCudaErrors(cudaFree(d_blue));
+  cudaFree(d_red);
+  cudaFree(d_green);
+  cudaFree(d_blue);
 }
 
 uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, bool vertical)
@@ -153,27 +153,27 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
   const size_t numPixels = numRows * numCols;
 
   //allocate memory on the device for both input and output
-  checkCudaErrors(cudaMalloc(d_inputImageRGBA, sizeof(uchar4) * numPixels));
-  checkCudaErrors(cudaMalloc(d_outputImageRGBA, sizeof(uchar4) * numPixels));
-  checkCudaErrors(cudaMemset(*d_outputImageRGBA, 0, numPixels * sizeof(uchar4))); //make sure no memory is left laying around
+  cudaMalloc(d_inputImageRGBA, sizeof(uchar4) * numPixels);
+  cudaMalloc(d_outputImageRGBA, sizeof(uchar4) * numPixels);
+  cudaMemset(*d_outputImageRGBA, 0, numPixels * sizeof(uchar4)); //make sure no memory is left laying around
 
   //copy input array to the GPU
-  checkCudaErrors(cudaMemcpy(d_inputImageRGBA, h_in, sizeof(uchar4) * numPixels, cudaMemcpyHostToDevice));
+  cudaMemcpy(d_inputImageRGBA, h_in, sizeof(uchar4) * numPixels, cudaMemcpyHostToDevice);
 
   //blurred
-  checkCudaErrors(cudaMalloc(d_redBlurred,    sizeof(unsigned char) * numPixels));
-  checkCudaErrors(cudaMalloc(d_greenBlurred,  sizeof(unsigned char) * numPixels));
-  checkCudaErrors(cudaMalloc(d_blueBlurred,   sizeof(unsigned char) * numPixels));
-  checkCudaErrors(cudaMemset(*d_redBlurred,   0, sizeof(unsigned char) * numPixels));
-  checkCudaErrors(cudaMemset(*d_greenBlurred, 0, sizeof(unsigned char) * numPixels));
-  checkCudaErrors(cudaMemset(*d_blueBlurred,  0, sizeof(unsigned char) * numPixels));
+  cudaMalloc(d_redBlurred, sizeof(unsigned char) * numPixels);
+  cudaMalloc(d_greenBlurred,  sizeof(unsigned char) * numPixels);
+  cudaMalloc(d_blueBlurred,   sizeof(unsigned char) * numPixels);
+  cudaMemset(*d_redBlurred,   0, sizeof(unsigned char) * numPixels);
+  cudaMemset(*d_greenBlurred, 0, sizeof(unsigned char) * numPixels);
+  cudaMemset(*d_blueBlurred,  0, sizeof(unsigned char) * numPixels);
 
   allocateMemoryAndCopyToGPU(numRows, numCols);
 
   //Launch a kernel for separating the RGBA image into different color channels
   separateChannels<<<gridSize, blockSize>>>(d_inputImageRGBA, numRows, numCols, d_red,d_green, d_blue);
 
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
 
   //Call mirror kernel here 3 times, once for each color channel.
   mirror<<<gridSize, blockSize>>>(d_red, d_redBlurred, numRows, numCols, vertical);
@@ -181,7 +181,7 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
   mirror<<<gridSize, blockSize>>>(d_blue, d_blueBlurred, numRows, numCols, vertical);
 
 
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
 
   //Now we recombine the results.
 
@@ -191,24 +191,24 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
                                              d_outputImageRGBA,
                                              numRows,
                                              numCols);
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
 
   //cleanup memory
   cleanup();
-  checkCudaErrors(cudaFree(d_redBlurred));
-  checkCudaErrors(cudaFree(d_greenBlurred));
-  checkCudaErrors(cudaFree(d_blueBlurred));
+  cudaFree(d_redBlurred);
+  cudaFree(d_greenBlurred);
+  cudaFree(d_blueBlurred);
 
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize(); 
 
   //Initialize memory on host for output uchar4*
   uchar4* h_out;
   h_out = (uchar4*)malloc(sizeof(uchar4) * numPixels)
 
   //copy output from device to host
-  checkCudaErrors(cudaMemcpy(h_out, d_outputImageRGBA, sizeof(uchar4) * numPixels, cudaMemcpyDeviceToHost));
+  cudaMemcpy(h_out, d_outputImageRGBA, sizeof(uchar4) * numPixels, cudaMemcpyDeviceToHost);
 
-  cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
+  cudaDeviceSynchronize();
 
   //cleanup memory on device
   cudaFree(d_inputImageRGBA);
