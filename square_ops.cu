@@ -40,7 +40,7 @@ uchar4* square(const uchar4 * const h_image, uchar4 * const d_image, uchar4 colo
 {
   size_t size, newSize;
   const dim3 blockSize(64, 64, 1);  
-  const dim3 gridSize(numRows/blockSize.x+1, numCols/blockSize.y+1,1);  
+  const dim3 gridSize(n_numRows/blockSize.x+1, n_numCols/blockSize.y+1,1);  
   size = numRows*numCols;
   
   if(numCols > numRows)		//setting new cols and rows size
