@@ -24,16 +24,16 @@ load_save.o: load_save.cpp include/load_save.h
 
 # Maybe there's no need to have $OPENCV_INCLUDEPATH in the following files.
 blur_ops.o: blur_ops.cu include/load_save.h include/blur_ops.h
-	$(NVCC) -c blur_ops.cu -I $(OPENCV_INCLUDEPATH) $(NVCC_OPTS)
+	$(NVCC) -c blur_ops.cu $(NVCC_OPTS)
 
 mirror_ops.o: mirror_ops.cu include/load_save.h include/mirror_ops.h
-	$(NVCC) -c mirror_ops.cu -I $(OPENCV_INCLUDEPATH) $(NVCC_OPTS)
+	$(NVCC) -c mirror_ops.cu $(NVCC_OPTS)
 
 square_ops.o: square_ops.cu include/load_save.h include/square_ops.h
-	$(NVCC) -c square_ops.cu -I $(OPENCV_INCLUDEPATH) $(NVCC_OPTS)
+	$(NVCC) -c square_ops.cu $(NVCC_OPTS)
 
 filter_ops.o: filter_ops.cu include/load_save.h include/filter_ops.h
-	$(NVCC) -c filter_ops.cu -I $(OPENCV_INCLUDEPATH) $(NVCC_OPTS)
+	$(NVCC) -c filter_ops.cu $(NVCC_OPTS)
 
 clean:
 	rm -f *.o photops
