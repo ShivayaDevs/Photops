@@ -21,6 +21,9 @@
 using namespace std;
 using namespace boost::program_options;
 
+uchar4* square_yash(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color);
+
+
 size_t numRows, numCols;
 
 uchar4* load_image_in_GPU(string filename)
@@ -88,9 +91,15 @@ int main(int argc, char **argv){
   }
   else if(vm.count("square")){
     string color = vm["color"].as<string>();
-    size_t n_numRows, n_numCols;
-    uchar4* h_out = square(d_in, numRows, numCols, n_numRows, n_numCols, make_uchar4(255,255,255,255));
-    saveImageRGBA(h_out, output_file, n_numRows,n_numCols);
+      
+    uchar4* h_out = square_yash(d_in, numRows, numCols, make_uchar4(255,255,255,255));
+    saveImageRGBA(h_out, output_file, numRows, numCols);  
+
+
+
+    // size_t n_numRows, n_numCols;
+    // uchar4* h_out = square(d_in, numRows, numCols, n_numRows, n_numCols, make_uchar4(255,255,255,255));
+    // saveImageRGBA(h_out, output_file, n_numRows,n_numCols);
     // Call the square_image function here
     // @param h_image numRows numCols strip_color  
   }

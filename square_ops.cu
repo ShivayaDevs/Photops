@@ -1,7 +1,7 @@
 // Corresponding header file: /include/square_ops.h
 #include <cuda_runtime.h>
 #include "include/blur_ops.h"
-
+#include <stdio.h>
 /* Write the code to square(blur) the image.
    2 cases as already specified.
 
@@ -16,18 +16,20 @@
 __global__ 
 void square(const uchar4* d_in, uchar4* d_sq, size_t numRows, size_t numCols, size_t n_numRows, size_t n_numCols, uchar4 color)
 {
- 	int y = blockDim.x*blockIdx.x + threadIdx.x;	//column
-	int x = blockDim.y*blockIdx.y + threadIdx.y;	//row
-	int index = x*numRows + y;										//previous index of pixel
-	int n_index = x*n_numRows + y;								//new index of pixel
+ 	int x = blockDim.x*blockIdx.x + threadIdx.x;	
+	int y = blockDim.y*blockIdx.y + threadIdx.y;	
 
-	if(y >= n_numCols || x >= n_numRows)  				//check out of bound
+  int index = y* numCols + x;
+	int n_index = y*n_numCols + x;								//new index of pixel
+
+	if(x >= n_numCols || y >= n_numRows)  				//check out of bound
 	  return;
-
-	if(y < numCols && x < numRows)								
+  
+	if(x < numCols && y < numRows)								
 	  d_sq[n_index] = d_in[index];
 	else
 	  d_sq[n_index] = color;
+  
 }
 
 __global__ 
@@ -78,7 +80,7 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
 {
 	size_t newSize;
   const dim3 blockSize(64, 64, 1);  
-  const dim3 gridSize(numRows/blockSize.x+1, numCols/blockSize.y+1,1);  
+    
    
   if(numCols > numRows)		//setting new cols and rows size
   {
@@ -90,7 +92,7 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
     n_numCols = numRows; 
     n_numRows = numRows;
   }
-  
+  const dim3 gridSize(n_numCols/blockSize.x+1, n_numRows/blockSize.y+1,1);
 	newSize = n_numRows * n_numCols;
   uchar4* d_sq;
   cudaMalloc(&d_sq, sizeof(uchar4)*newSize);
@@ -101,6 +103,53 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
   return h_out; 
 }
 
+///////////////////////////////////
+
+__global__ void square_kernel(uchar4 *d_in, uchar4 * d_out, size_t numRows, size_t numCols, uchar4 color){
+  int x = blockDim.x * blockIdx.x + threadIdx.x;
+  int y = blockDim.y * blockIdx.y + threadIdx.y;
+ 
+  int width = (numCols > numRows)? numCols:numRows;
+  if(x >= width || y >= width)
+    return;
+
+  if(numCols>numRows){
+    int w = (numCols - numRows) / 2 ;
+    if(y >= w && y < width - w)
+        d_out[y*numCols + x] = d_in[(y-w)*numCols + x];
+    else
+      d_out[y*numCols + x] = color;
+  }
+  else{
+    int w = (numRows - numCols) / 2 ;
+    if(x >= w && x < width - w)
+      d_out[y*numRows + x] = d_in[y*numCols + x-w];
+    else
+      d_out[y*numCols + x] = color;
+  }
+}
+
+uchar4* square_yash(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color){
+
+  size_t width = (numCols>numRows)?numCols:numRows;
+
+  uchar4 *d_out;
+  cudaMalloc((void **) &d_out, width * width * sizeof(uchar4));
+
+  dim3 block_size(16, 16, 1);
+  dim3 grid_size(width/16 + 1, width/16 + 1, 1);
+
+  square_kernel<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols, color);
+
+  numRows = numCols = width;
+  uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_out, width * width * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  cudaFree(d_out);
+  return h_out;   
+}
+
+
+///////////////////////////////////
 
 uchar4* square_blur(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_numRows, size_t &n_numCols, int blurKernelWidth, float blurKernelSigma)
 {

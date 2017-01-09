@@ -380,6 +380,8 @@ uchar4* hdr_ops(uchar4* d_image, size_t numRows, size_t numCols)
   cudaMalloc(&d_out, sizeof(uchar4) * numRows * numCols);
   postProcess(d_out, d_luminance, d_cdf, numRows, numCols, min_logLum, max_logLum);
 
-  return d_out;
+   uchar4 *h_out = new uchar4[numRows * numCols * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_out, numRows * numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  return h_out;
 
 }
