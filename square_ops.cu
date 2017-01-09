@@ -94,7 +94,7 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
   uchar4* h_blur = new uchar4[width * width * sizeof(uchar4)];
 
   //calling vagisha's function
-  h_blur = blur_ops(d_in, numRows, numCols, blurKernelWidth, blurKernelSigma);
+  h_blur = blur_ops(d_image, numRows, numCols, blurKernelWidth, blurKernelSigma);
   //h_blur = blur_ops(d_in, numRows, numCols, 9, 2.0);
 
   uchar4* d_blur;
@@ -106,6 +106,7 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
 
   square_blur<<<gridSize, blockSize>>>(d_image, d_blur, d_out, numRows, numCols);
 
+  numRows = numCols = width;
   uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
   cudaMemcpy(h_out, d_out, width * width * sizeof(uchar4), cudaMemcpyDeviceToHost);
   return h_out; 
