@@ -97,7 +97,7 @@ int main(int argc, char **argv){
 
 
 
-    size_t n_numRows, n_numCols;
+    size_t n_numRows=0, n_numCols=0;
     uchar4* h_out = square(d_in, numRows, numCols, n_numRows, n_numCols, make_uchar4(255,255,255,255));
     saveImageRGBA(h_out, output_file, n_numRows,n_numCols);
     // Call the square_image function here

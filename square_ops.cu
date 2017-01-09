@@ -19,12 +19,15 @@ void square(const uchar4* d_in, uchar4* d_sq, size_t numRows, size_t numCols, si
  	int x = blockDim.x*blockIdx.x + threadIdx.x;	
 	int y = blockDim.y*blockIdx.y + threadIdx.y;	
 
+  if(x >= n_numCols || y >= n_numRows)          //check out of bound
+    return;
+  
+
+
   int index = y* numCols + x;
 	int n_index = y*n_numCols + x;								//new index of pixel
 
-	if(x >= n_numCols || y >= n_numRows)  				//check out of bound
-	  return;
-  
+	
 	if(x < numCols && y < numRows)								
 	  d_sq[n_index] = d_in[index];
 	else
@@ -75,11 +78,11 @@ void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, 
 	n_numRows and n_numCols are the new row and column sizes
 	d_sq represents output image intensities
 */
-
+#include <iostream>
 uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_numRows, size_t &n_numCols, uchar4 color)
 {
 	size_t newSize;
-  const dim3 blockSize(64, 64, 1);  
+  const dim3 blockSize(16, 16, 1);  
     
    
   if(numCols > numRows)		//setting new cols and rows size
@@ -92,14 +95,19 @@ uchar4* square(uchar4* const d_image, size_t numRows, size_t numCols, size_t &n_
     n_numCols = numRows; 
     n_numRows = numRows;
   }
+
   const dim3 gridSize(n_numCols/blockSize.x+1, n_numRows/blockSize.y+1,1);
 	newSize = n_numRows * n_numCols;
+
   uchar4* d_sq;
-  cudaMalloc(&d_sq, sizeof(uchar4)*newSize);
+  cudaMalloc((void **) &d_sq, sizeof(uchar4)*newSize);
 	square<<<gridSize, blockSize>>>(d_image, d_sq, numRows, numCols, n_numRows, n_numCols, color);
 
   uchar4 *h_out = new uchar4[n_numRows * n_numCols * sizeof(uchar4)];
   cudaMemcpy(h_out, d_sq, n_numRows * n_numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  
+  cudaFree(d_sq);
+  
   return h_out; 
 }
 
