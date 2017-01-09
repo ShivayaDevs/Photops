@@ -123,9 +123,9 @@ __global__ void square_kernel(uchar4 *d_in, uchar4 * d_out, size_t numRows, size
   else{
     int w = (numRows - numCols) / 2 ;
     if(x >= w && x < width - w)
-      d_out[y*numRows + x] = d_in[y*numCols + x-w];
+      d_out[y*width + x] = d_in[y*numCols + x];
     else
-      d_out[y*numCols + x] = color;
+      d_out[y*width + x] = color;
   }
 }
 
