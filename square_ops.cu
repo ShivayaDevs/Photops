@@ -38,7 +38,7 @@ void square_blur(const uchar4* d_in, uchar4* d_blur, uchar4* d_out, size_t numRo
 
   if(x >= width || y >= width)  //check out of bounds
     return ;
-  
+
   if(numCols > numRows)
   {
     int w = (numCols - numRows) / 2;
@@ -94,7 +94,7 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
   uchar4* h_blur = new uchar4[width * width * sizeof(uchar4)];
 
   //calling vagisha's function
-  h_blur = blur_ops(d_in, numRows, numCols, 13, 3.0);
+  h_blur = blur_ops(d_in, numRows, numCols, blurKernelWidth, blurKernelSigma);
   //h_blur = blur_ops(d_in, numRows, numCols, 9, 2.0);
 
   uchar4* d_blur;

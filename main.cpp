@@ -83,7 +83,7 @@ int main(int argc, char **argv){
   }
   else if(vm.count("sqBlur")){
     int amount = vm["amount"].as<int>();
-    h_out = square_blur(d_in, numRows, numCols, numRows, numCols, 9, 2.0f);    //TODO: Change these parameters.
+    h_out = square_blur(d_in, numRows, numCols, 13, 3.0f);    //TODO: Change these parameters.
   }
   else if(vm.count("square")){
     string color = vm["color"].as<string>();
