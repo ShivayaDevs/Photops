@@ -1,19 +1,8 @@
 // Corresponding header file: /include/mirror_ops.h
 #include <cuda_runtime.h>
 #include <stdio.h>    
-#include <helper_cuda.h>
-#include <helper_functions.h>   
 
-/* Write the code to mirror the image.
-   Mirror's orientation can be both horizontal as well as vertical.
-   Decide the parameters for yourself and return a pointer to the new image.
-   Or maybe, you can deallocate the memory of the incoming image after the operation.
-
-   You will receive a pointer to h_in so tasks like allocating memory 
-   to GPU - you need to handle them yourself.  
-*/
-
-unsigned char *d_red, *d_green, *d_blue;
+/* Mirror operations */
 
 __global__ 
 void mirror(const uchar4* const inputChannel, uchar4* outputChannel, int numRows, int numCols, bool vertical)
@@ -73,14 +62,13 @@ void mirror(const uchar4* const inputChannel, uchar4* outputChannel, int numRows
 		sharedBlockB[ty][tx].y = sharedBlockA[ty][3-tx].y;
 		sharedBlockB[ty][tx].z = sharedBlockA[ty][3-tx].z;
 	
-		__syncthreads();   // wait for all threads to reach this point
+    __syncthreads();   // wait for all threads to reach this point
 		
 		unsigned char red   = 	sharedBlockB[ty][tx].x;
 		unsigned char blue   = 	sharedBlockB[ty][tx].y;
 		unsigned char green   = 	sharedBlockB[ty][tx].z;
 
    	outputChannel[blockIdxB + ty * dX + tx] = make_uchar4(red,blue,green,255);   // linear data store in global memory
-   	
   }
 }         
 
@@ -96,13 +84,7 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
 
   const size_t numPixels = numRows * numCols;
 
-  //allocate memory on the device for both input and output
-  cudaMalloc(d_inputImageRGBA, sizeof(uchar4) * numPixels);
   cudaMalloc(d_outputImageRGBA, sizeof(uchar4) * numPixels);
-  cudaMemset(*d_outputImageRGBA, 0, numPixels * sizeof(uchar4)); //make sure no memory is left laying around
-
-  //copy input array to the GPU
-  cudaMemcpy(d_inputImageRGBA, h_in, sizeof(uchar4) * numPixels, cudaMemcpyHostToDevice);
 
   //Call mirror kernel.
   mirror<<<gridSize, blockSize>>>(d_inputImageRGBA, d_outputImageRGBA, numRows, numCols, vertical);
