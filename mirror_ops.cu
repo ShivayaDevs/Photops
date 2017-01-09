@@ -74,7 +74,7 @@ void mirror(const uchar4* const inputChannel, uchar4* outputChannel, int numRows
 
 
 
-uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, bool vertical)
+uchar4* mirror_ops(uchar4 *d_inputImageRGBA, size_t numRows, size_t numCols, bool vertical)
 {
 	//Set reasonable block size (i.e., number of threads per block)
 	const dim3 blockSize(4,4,1);
@@ -84,7 +84,8 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
 
   const size_t numPixels = numRows * numCols;
 
-  cudaMalloc(d_outputImageRGBA, sizeof(uchar4) * numPixels);
+  uchar4 *d_outputImageRGBA;
+  cudaMalloc(&d_outputImageRGBA, sizeof(uchar4) * numPixels);
 
   //Call mirror kernel.
   mirror<<<gridSize, blockSize>>>(d_inputImageRGBA, d_outputImageRGBA, numRows, numCols, vertical);
@@ -93,7 +94,7 @@ uchar4* mirror_ops(const uchar4* const h_in, size_t numRows, size_t numCols, boo
  
   //Initialize memory on host for output uchar4*
   uchar4* h_out;
-  h_out = (uchar4*)malloc(sizeof(uchar4) * numPixels)
+  h_out = (uchar4*)malloc(sizeof(uchar4) * numPixels);
 
   //copy output from device to host
   cudaMemcpy(h_out, d_outputImageRGBA, sizeof(uchar4) * numPixels, cudaMemcpyDeviceToHost);

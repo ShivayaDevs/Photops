@@ -1,4 +1,5 @@
 /* Usage:   ./photops input_file [option] [argument]
+
    Options: 
           --blur                    For blurring the image.
           --mirror orientation      For mirror image formation.
@@ -20,9 +21,6 @@
 
 using namespace std;
 using namespace boost::program_options;
-
-uchar4* square_yash(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color);
-
 
 size_t numRows, numCols;
 
@@ -72,42 +70,32 @@ int main(int argc, char **argv){
   string output_file = vm["output"].as<string>();
   
   uchar4 *d_in = load_image_in_GPU(input_file);
+  uchar4 *h_out = NULL;
 
   // Performing the required operation
   if(vm.count("blur")){
     int amount = vm["amount"].as<int>();
-    // Call the blur function here
-    // @param h_image numRows numCols amount
+    h_out = blur_ops(d_in, numRows, numCols, 9 , 2.0f);                        //TODO: Relate the blur parameters to the amount parameters.
   }
   else if(vm.count("mirror")){
     bool isVertical = ((vm["mirror"].as<char>() == 'v') ? true:false);
-    // Call the mirror function here
-    // @param h_image numRows numCols isVertical
+    h_out = mirror_ops(d_in, numRows, numCols, isVertical);
   }
   else if(vm.count("sqBlur")){
     int amount = vm["amount"].as<int>();
-    // Call the square blur function here
-    // @param h_image numRows numCols amount 
+    h_out = square_blur(d_in, numRows, numCols, numRows, numCols, 9, 2.0f);    //TODO: Change these parameters.
   }
   else if(vm.count("square")){
     string color = vm["color"].as<string>();
-      
-    // uchar4* h_out = square_yash(d_in, numRows, numCols, make_uchar4(255,255,255,255));
-    // saveImageRGBA(h_out, output_file, numRows, numCols);  
-
-
-
-    size_t n_numRows=0, n_numCols=0;
-    uchar4* h_out = square(d_in, numRows, numCols, n_numRows, n_numCols, make_uchar4(255,255,255,255));
-    saveImageRGBA(h_out, output_file, n_numRows,n_numCols);
-    // Call the square_image function here
-    // @param h_image numRows numCols strip_color  
+    h_out = square_image(d_in, numRows, numCols, make_uchar4(255,255,255,255)); //TODO: Setting the color.
   }
   else if(vm.count("filter")){
     string filter_name = vm["filter"].as<string>();
-    uchar4* h_out = apply_filter(d_in, numRows, numCols, filter_name);
-    saveImageRGBA(h_out, output_file, numRows,numCols);
-    cout<<filter_name<<" filter applied. Output File: "<<output_file<<"\n";
+    h_out = apply_filter(d_in, numRows, numCols, filter_name);
   }
+
   cudaFree(d_in);
+  if(h_out != NULL)
+    saveImageRGBA(h_out, output_file, numRows, numCols); 
+  
 }
