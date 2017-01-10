@@ -154,14 +154,14 @@ void blur_new2(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, size
 
   if(numCols > numRows)
   {
-    int scaleFactor = numCols/numRows;
+    int scaleFactor = numCols/numRows + 1;
     int shiftFactor = ( (numCols * scaleFactor) - width ) / 2 ;
     int w = (numCols - numRows) / 2;
 
     if(y >= w && y < width - w)
-      d_out[y * numCols + x] = d_in[(y - w) * numCols + x];
+      d_out[y * width + x] = d_in[(y - w) * numCols + x];
     else
-      d_out[y * numCols + x] = d_blur[y * numCols * scaleFactor + (x + shiftFactor)];
+      d_out[y * width + x] = d_blur[y * numCols * scaleFactor + (x + shiftFactor)];
 
   }
 
@@ -238,10 +238,10 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
     int scaleFactor = numCols/numRows + 1;
     size_t newSize = numCols * numRows * scaleFactor * scaleFactor;
 
-    std::cout<<"Size: "<<newSize;
-    std::cout<<"rows: "<<numRows * scaleFactor;
-    std::cout<<"Cols: "<<numCols * scaleFactor;
-    std::cout<<"factor: "<<scaleFactor;
+    // std::cout<<"Size: "<<newSize;
+    // std::cout<<"rows: "<<numRows * scaleFactor;
+    // std::cout<<"Cols: "<<numCols * scaleFactor;
+    // std::cout<<"factor: "<<scaleFactor;
 
     uchar4 *h_zoom = new uchar4[sizeof(uchar4) * newSize];
 
@@ -274,5 +274,5 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
     return h_out;
 
   }
-  
+
 }
