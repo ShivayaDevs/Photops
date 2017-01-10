@@ -142,6 +142,30 @@ void blur_new(const uchar4* d_in, uchar4* d_blur, uchar4* d_out, size_t numRows,
 
 }
 
+__global__
+void blur_new2(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, size_t numCols)
+{
+  int width = (numCols > numRows)? numCols: numRows;
+  int x = blockDim.x * blockIdx.x + threadIdx.x;
+  int y = blockDim.y * blockIdx.y + threadIdx.y;
+
+  if(x >= width || y >= width)
+    return; 
+
+  if(numCols > numRows)
+  {
+    int scaleFactor = numCols/numRows;
+    int shiftFactor = ( (numCols * scaleFactor) - width ) / 2 ;
+    int w = (numCols - numRows) / 2;
+
+    if(y >= w && y < width - w)
+      d_out[y * numCols + x] = d_in[(y - w) * numCols + x];
+    else
+      d_out[y * numCols + x] = d_blur[y * numCols * scaleFactor + (x + shiftFactor)];
+
+  }
+
+}
 
 /*
 output: a.jpg
@@ -224,17 +248,31 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
     zoom_2(h_image, h_zoom, numRows, numCols, scaleFactor);
 
 
-    numRows = numRows * scaleFactor;
-    numCols = numCols * scaleFactor;
-
-    return h_zoom;
-
     uchar4 *d_zoom;
     cudaMalloc(&d_zoom, sizeof(uchar4) * newSize);
     cudaMemcpy(d_zoom, h_zoom, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
 
-    //blur_ops(d_zoom, h_blur, (size_t)(numRows * scaleFactor), (size_t)(numCols * scaleFactor), blurKernelWidth, blurKernelSigma);
+    uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
+    h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth, blurKernelSigma);
+
+    uchar4 * d_blur;
+    cudaMalloc(&d_blur, sizeof(uchar4) * newSize);
+    cudaMemcpy(d_blur, h_blur, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
+
+    size_t width = (numCols > numRows)? numCols: numRows;
+    dim3 threads(16, 16, 1);
+    dim3 blocks(width/threads.x, width/threads.y, 1);
+
+    uchar4 *d_out;
+    cudaMalloc(&d_out, sizeof(uchar4) * width * width);
+    blur_new2<<<blocks, threads>>>(d_image, d_blur, d_out, numRows, numCols);
+
+    numCols = numRows = width;
+
+    uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
+    cudaMemcpy(h_out, d_out, sizeof(uchar4) * width * width, cudaMemcpyDeviceToHost);
+    return h_out;
 
   }
-
+  
 }
