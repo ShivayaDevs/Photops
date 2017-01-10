@@ -7,9 +7,6 @@
 __global__ 
 void mirror(const uchar4* const inputChannel, uchar4* outputChannel, int numRows, int numCols, bool vertical)
 {
-  __shared__ uchar4 sharedBlockA[4][4];   // 1. shared memory for reverse swap
-  __shared__ uchar4 sharedBlockB[4][4];   // 2. shared memory for reverse swap
-
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -17,58 +14,34 @@ void mirror(const uchar4* const inputChannel, uchar4* outputChannel, int numRows
   {
    return;
   }
-  
-  int tx = threadIdx.x;   // thread index X-Dir
-  int ty = threadIdx.y;   // thread index Y-Dir
-  
-  int dX = numCols;	//  the pictures width
-  int dY = numRows;	//  the pictures height
 
-  if(vertical)
-  {
-  	int blockIdxA = blockIdx.x * blockDim.x + blockIdx.y * blockDim.y * dX;	 //  begin read
-  	int blockIdxB = dX * dY - blockIdxA - blockDim.y * dX - blockDim.x;		 //  store data
+  if(!vertical)
+  { 
   
-  	sharedBlockA[ty][tx].x = inputChannel[blockIdxA + ty * dX + tx].x;  // linear data fetch from global memory
-  	sharedBlockA[ty][tx].y = inputChannel[blockIdxA + ty * dX + tx].y; 
-  	sharedBlockA[ty][tx].z = inputChannel[blockIdxA + ty * dX + tx].z; 
-  	
-		__syncthreads ();   // wait for all threads to reach this point
+    int thread_x = blockDim.x * blockIdx.x + threadIdx.x;
+    int thread_y = blockDim.y * blockIdx.y + threadIdx.y;
+    
+    int thread_x_new = thread_x;
+    int thread_y_new = numRows-thread_y;
 
-		sharedBlockB[ty][tx].x = sharedBlockA[3-ty][3-tx].x; // mirror each element in the cache
-		sharedBlockB[ty][tx].y = sharedBlockA[3-ty][3-tx].y;
-		sharedBlockB[ty][tx].z = sharedBlockA[3-ty][3-tx].z;
-		
-		__syncthreads();   // wait for all threads to reach this point
-		
-		unsigned char red   = 	sharedBlockB[ty][tx].x;
-		unsigned char blue   = 	sharedBlockB[ty][tx].y;
-		unsigned char green   = 	sharedBlockB[ty][tx].z;
-		outputChannel[blockIdxB + ty * dX + tx] = make_uchar4(red,blue,green,255);   // linear data store in global memory
+    int myId = thread_y * numCols + thread_x;
+    int myId_new = thread_y_new * numCols + thread_x_new;
+    outputChannel[myId_new] = inputChannel[myId];
    	
   }
-	else
+
+  else
   {
-  	int blockIdxA = blockIdx.x * blockDim.x + blockIdx.y * blockDim.y * dX;	 //  begin read
-  	int blockIdxB = blockIdx.y * blockDim.y * dX + dX*blockDim.y - blockIdx.x*blockDim.x - blockDim.x*blockDim.y; //  store data
+  	int thread_x = blockDim.x * blockIdx.x + threadIdx.x;
+    int thread_y = blockDim.y * blockIdx.y + threadIdx.y;
+    
+    int thread_x_new = numCols-thread_x;
+    int thread_y_new = thread_y;
+
+    int myId = thread_y * numCols + thread_x;
+    int myId_new = thread_y_new * numCols + thread_x_new;
   
-  	sharedBlockA[ty][tx].x = inputChannel[blockIdxA + ty * dX + tx].x;  // linear data fetch from global memory
-  	sharedBlockA[ty][tx].y = inputChannel[blockIdxA + ty * dX + tx].y; 
-  	sharedBlockA[ty][tx].z = inputChannel[blockIdxA + ty * dX + tx].z; 
- 
-		__syncthreads ();   // wait for all threads to reach this point
-
-		sharedBlockB[ty][tx].x = sharedBlockA[ty][3-tx].x; // mirror each element in the cache
-		sharedBlockB[ty][tx].y = sharedBlockA[ty][3-tx].y;
-		sharedBlockB[ty][tx].z = sharedBlockA[ty][3-tx].z;
-	
-    __syncthreads();   // wait for all threads to reach this point
-		
-		unsigned char red   = 	sharedBlockB[ty][tx].x;
-		unsigned char blue   = 	sharedBlockB[ty][tx].y;
-		unsigned char green   = 	sharedBlockB[ty][tx].z;
-
-   	outputChannel[blockIdxB + ty * dX + tx] = make_uchar4(red,blue,green,255);   // linear data store in global memory
+  	outputChannel[myId_new] = inputChannel[myId];  // linear data store in global memory	
   }
 }         
 
