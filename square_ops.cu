@@ -71,22 +71,23 @@ void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, si
 }
 
 
-//zooming image by scaling factor
-void zoom(uchar4 *h_in, uchar4 *h_out, size_t numRows, size_t numCols, int scaleFactor)
+//kernel to zoom an image by scaling factor
+__global__
+void kernel_zoom(uchar4 * d_image, uchar4 * d_out, size_t numRows, size_t numCols, int scaleFactor)
 {
-  for(long cy = 0; cy < (numRows * scaleFactor); cy++)
-  {
-    for(long cx = 0; cx < (numCols * scaleFactor); cx++)
-    {
-      int pixel = (cy * numCols * scaleFactor) + cx;
-      int y = cy/scaleFactor;
-      int x = cx/scaleFactor;
-      int nearest_pixel = (y * (numCols ) + x );
-      
-      h_out[pixel] = h_in[nearest_pixel];
-    }
-  }
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if(x > = numCols * scaleFactor || y >= numRows * scaleFactor)
+    return ;
+
+  //calculating nearest pixel
+  int nearest_x = x / scaleFactor;
+  int nearest_y = y / scaleFactor;
+
+  d_out[y * numCols * scaleFactor + x] = d_in[nearest_y * numCols + nearest_x];
 }
+
 
 
 // function to square an image
@@ -114,25 +115,25 @@ uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar
 // function to square blur an image
 uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurKernelWidth, float blurKernelSigma)
 {
-  uchar4 *h_image = new uchar4[numCols * numRows * sizeof(uchar4)];
-  cudaMemcpy(h_image, d_image, numRows * numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
+  dim3 threads(16, 16, 1);
 
+  // calculating scaling factor
+  int scaleFactor;
   if(numCols > numRows)
-    int scaleFactor = numCols/numRows + 1;
+    scaleFactor = numCols/numRows + 1;
   else
-    int scaleFactor = numRows/numCols + 1;
+    scaleFactor = numRows/numCols + 1;
 
   //new size: zoom matrice
   size_t newSize = numCols * numRows * scaleFactor * scaleFactor;
-  // host zoom 
-  uchar4 *h_zoom = new uchar4[sizeof(uchar4) * newSize];
-
-  zoom(h_image, h_zoom, numRows, numCols, scaleFactor);
+  
+  dim3 zoom_grid(numCols * scaleFactor / threads.x + 1, numRows * scaleFactor / threads.y + 1, 1);
 
   //device zoom copy
   uchar4 *d_zoom;
   cudaMalloc(&d_zoom, sizeof(uchar4) * newSize);
-  cudaMemcpy(d_zoom, h_zoom, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
+  
+  kernel_zoom<<<zoom_grid, threads>>>(d_image, d_zoom, numRows, numCols, scaleFactor);
 
   // blurring zoomed image
   uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
@@ -144,7 +145,7 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
   cudaMemcpy(d_blur, h_blur, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
 
   size_t width = (numCols > numRows)? numCols: numRows;
-  dim3 threads(16, 16, 1);
+  
   dim3 blocks(width/threads.x + 1, width/threads.y + 1, 1);
 
   uchar4 *d_out;
