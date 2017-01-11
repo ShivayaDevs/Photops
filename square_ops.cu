@@ -5,7 +5,7 @@
 
 /* Image squaring operations.*/
 
-//kernel to square a image
+//kernel to square an image
 __global__ void kernel_square(uchar4 *d_in, uchar4 * d_out, size_t numRows, size_t numCols, uchar4 color){
   int x = blockDim.x * blockIdx.x + threadIdx.x;
   int y = blockDim.y * blockIdx.y + threadIdx.y;
@@ -31,7 +31,7 @@ __global__ void kernel_square(uchar4 *d_in, uchar4 * d_out, size_t numRows, size
 }
 
 
-//kernel to square blur a image
+//kernel to square blur an image
 __global__
 void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, size_t numCols)
 {
@@ -39,6 +39,7 @@ void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, si
   int x = blockDim.x * blockIdx.x + threadIdx.x;
   int y = blockDim.y * blockIdx.y + threadIdx.y;
 
+  //check out of bound
   if(x >= width || y >= width)
     return; 
 
@@ -52,6 +53,18 @@ void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, si
       d_out[y * width + x] = d_in[(y - w) * numCols + x];
     else
       d_out[y * width + x] = d_blur[y * numCols * scaleFactor + (x + shiftFactor)];
+
+  }
+  else
+  {
+    int scaleFactor = numRows/numCols + 1;
+    int shiftFactor = ((numRows * scaleFactor) - width) / 2;
+    int w = (numRows - numCols) / 2;
+
+    if(x >= w && x < width - w)
+      d_out[y * width + x] = d_in[y * numCols + (x - w)];
+    else
+      d_out[y * width + x] = d_blur[(y + shiftFactor) * numCols * scaleFactor + x];
 
   }
 
@@ -76,7 +89,7 @@ void zoom(uchar4 *h_in, uchar4 *h_out, size_t numRows, size_t numCols, int scale
 }
 
 
-
+// function to square an image
 uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color){
 
   size_t width = (numCols > numRows)? numCols : numRows;
@@ -90,6 +103,7 @@ uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar
   kernel_square<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols, color);
 
   numRows = numCols = width;
+
   uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
   cudaMemcpy(h_out, d_out, width * width * sizeof(uchar4), cudaMemcpyDeviceToHost);
   cudaFree(d_out);
@@ -97,46 +111,51 @@ uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar
 }
 
 
+// function to square blur an image
 uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurKernelWidth, float blurKernelSigma)
 {
   uchar4 *h_image = new uchar4[numCols * numRows * sizeof(uchar4)];
   cudaMemcpy(h_image, d_image, numRows * numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
 
   if(numCols > numRows)
-  {
     int scaleFactor = numCols/numRows + 1;
-    size_t newSize = numCols * numRows * scaleFactor * scaleFactor;
+  else
+    int scaleFactor = numRows/numCols + 1;
 
-    uchar4 *h_zoom = new uchar4[sizeof(uchar4) * newSize];
+  //new size: zoom matrice
+  size_t newSize = numCols * numRows * scaleFactor * scaleFactor;
+  // host zoom 
+  uchar4 *h_zoom = new uchar4[sizeof(uchar4) * newSize];
 
-    zoom(h_image, h_zoom, numRows, numCols, scaleFactor);
+  zoom(h_image, h_zoom, numRows, numCols, scaleFactor);
 
+  //device zoom copy
+  uchar4 *d_zoom;
+  cudaMalloc(&d_zoom, sizeof(uchar4) * newSize);
+  cudaMemcpy(d_zoom, h_zoom, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
 
-    uchar4 *d_zoom;
-    cudaMalloc(&d_zoom, sizeof(uchar4) * newSize);
-    cudaMemcpy(d_zoom, h_zoom, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
+  // blurring zoomed image
+  uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
+  h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth, blurKernelSigma);
 
-    uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
-    h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth, blurKernelSigma);
+  // device copy of zoom blur
+  uchar4 * d_blur;
+  cudaMalloc(&d_blur, sizeof(uchar4) * newSize);
+  cudaMemcpy(d_blur, h_blur, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
 
-    uchar4 * d_blur;
-    cudaMalloc(&d_blur, sizeof(uchar4) * newSize);
-    cudaMemcpy(d_blur, h_blur, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
+  size_t width = (numCols > numRows)? numCols: numRows;
+  dim3 threads(16, 16, 1);
+  dim3 blocks(width/threads.x + 1, width/threads.y + 1, 1);
 
-    size_t width = (numCols > numRows)? numCols: numRows;
-    dim3 threads(16, 16, 1);
-    dim3 blocks(width/threads.x + 1, width/threads.y + 1, 1);
+  uchar4 *d_out;
+  cudaMalloc(&d_out, sizeof(uchar4) * width * width);
 
-    uchar4 *d_out;
-    cudaMalloc(&d_out, sizeof(uchar4) * width * width);
-    kernel_blur<<<blocks, threads>>>(d_image, d_blur, d_out, numRows, numCols);
+  kernel_blur<<<blocks, threads>>>(d_image, d_blur, d_out, numRows, numCols);
 
-    numCols = numRows = width;
+  numCols = numRows = width;
 
-    uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
-    cudaMemcpy(h_out, d_out, sizeof(uchar4) * width * width, cudaMemcpyDeviceToHost);
-    return h_out;
-
-  }
+  uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_out, sizeof(uchar4) * width * width, cudaMemcpyDeviceToHost);
+  return h_out;
 
 }
