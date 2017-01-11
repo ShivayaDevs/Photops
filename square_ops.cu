@@ -67,9 +67,7 @@ void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, si
       d_out[y * width + x] = d_blur[(y + shiftFactor) * numCols * scaleFactor + x];
 
   }
-
 }
-
 
 //kernel to zoom an image by scaling factor
 __global__
@@ -78,7 +76,7 @@ void kernel_zoom(uchar4 * d_image, uchar4 * d_out, size_t numRows, size_t numCol
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if(x > = numCols * scaleFactor || y >= numRows * scaleFactor)
+  if(x >= (numCols * scaleFactor) || y >= (numRows * scaleFactor))
     return ;
 
   //calculating nearest pixel
@@ -87,8 +85,6 @@ void kernel_zoom(uchar4 * d_image, uchar4 * d_out, size_t numRows, size_t numCol
 
   d_out[y * numCols * scaleFactor + x] = d_image[nearest_y * numCols + nearest_x];
 }
-
-
 
 // function to square an image
 uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color){
@@ -158,5 +154,4 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
   uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
   cudaMemcpy(h_out, d_out, sizeof(uchar4) * width * width, cudaMemcpyDeviceToHost);
   return h_out;
-
 }

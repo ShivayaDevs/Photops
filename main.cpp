@@ -47,7 +47,7 @@ int main(int argc, char **argv){
     ("blur,b",  "Blur the image")
     ("mirror,m", value<char>(), "Mirror the image")
     ("square,s", "Square the image by attaching strips")
-    ("sqBlur,sb","Square Blur the image")
+    ("sqBlur,q","Square Blur the image")
     ("filter,f", value<string>())
     ("amount,a", value<int>()->default_value(20), "Specifies amount of blur")
     ("color,c", value<string>()->default_value("white"), "Specifies the color to be used");
