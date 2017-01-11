@@ -85,7 +85,7 @@ void kernel_zoom(uchar4 * d_image, uchar4 * d_out, size_t numRows, size_t numCol
   int nearest_x = x / scaleFactor;
   int nearest_y = y / scaleFactor;
 
-  d_out[y * numCols * scaleFactor + x] = d_in[nearest_y * numCols + nearest_x];
+  d_out[y * numCols * scaleFactor + x] = d_image[nearest_y * numCols + nearest_x];
 }
 
 
