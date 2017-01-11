@@ -15,7 +15,6 @@ void gaussian_blur(const unsigned char* const inputChannel,
 {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
-
   if ( col >= numCols || row >= numRows )
   {
    return;

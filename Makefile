@@ -22,7 +22,6 @@ main.o: main.cpp include/load_save.h include/square_ops.h include/mirror_ops.h i
 load_save.o: load_save.cpp include/load_save.h
 	g++ -c load_save.cpp -I $(OPENCV_INCLUDEPATH) $(GCC_OPTS) -I $(CUDA_INCLUDEPATH)
 
-# Maybe there's no need to have $OPENCV_INCLUDEPATH in the following files.
 blur_ops.o: blur_ops.cu include/load_save.h include/blur_ops.h
 	$(NVCC) -c blur_ops.cu $(NVCC_OPTS)
 
