@@ -109,7 +109,7 @@ uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar
 
 
 // function to square blur an image
-uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurKernelWidth, float blurKernelSigma)
+uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurKernelWidth)
 {
   dim3 threads(16, 16, 1);
 
@@ -133,7 +133,7 @@ uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurK
 
   // blurring zoomed image
   uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
-  h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth, blurKernelSigma);
+  h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth);
 
   // device copy of zoom blur
   uchar4 * d_blur;

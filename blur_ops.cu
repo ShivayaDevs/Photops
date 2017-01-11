@@ -135,8 +135,9 @@ void setFilter(float **h_filter, int *filterWidth, int blurKernelWidth, float bl
       (*h_filter)[(r + blurKernelWidth/2) * blurKernelWidth + c + blurKernelWidth/2] *= normalizationFactor;
 }
 
-uchar4* blur_ops(uchar4* d_inputImageRGBA, size_t numRows, size_t numCols, int blurKernelWidth, float blurKernelSigma)
-{ //Set filter array
+uchar4* blur_ops(uchar4* d_inputImageRGBA, size_t numRows, size_t numCols, int blurKernelWidth)
+{ float blurKernelSigma = blurKernelWidth/4.0f;
+  //Set filter array
   float* h_filter;
   int filterWidth;
   setFilter(&h_filter, &filterWidth, blurKernelWidth, blurKernelSigma);

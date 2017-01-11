@@ -36,6 +36,22 @@ uchar4* load_image_in_GPU(string filename)
   return d_in;
 }
 
+int hex_to_int(string hexa)
+{
+  int i;
+  stringstream s(hexa);
+  s>>std::hex>>i;
+  return i;
+}
+
+uchar4 hex_to_uchar4_color(string& color)
+{
+  int r = hex_to_int(color.substr(0, 2));
+  int g = hex_to_int(color.substr(2, 2));
+  int b = hex_to_int(color.substr(4, 2));
+  return make_uchar4(r, g, b, 255);
+}
+
 int main(int argc, char **argv){
 
   // Using boost library to parse commandline arguments.
@@ -49,7 +65,7 @@ int main(int argc, char **argv){
     ("square,s", "Square the image by attaching strips")
     ("sqBlur,q","Square Blur the image")
     ("filter,f", value<string>())
-    ("amount,a", value<int>()->default_value(20), "Specifies amount of blur")
+    ("amount,a", value<int>()->default_value(21), "Specifies amount of blur")
     ("color,c", value<string>()->default_value("white"), "Specifies the color to be used");
 
   // Generating a variable map for the options.
@@ -75,7 +91,9 @@ int main(int argc, char **argv){
   // Performing the required operation
   if(vm.count("blur")){
     int amount = vm["amount"].as<int>();
-    h_out = blur_ops(d_in, numRows, numCols, 9 , 2.0f);                        //TODO: Relate the blur parameters to the amount parameters.
+    if(amount % 2 == 0)
+      amount++;
+    h_out = blur_ops(d_in, numRows, numCols, amount);                      
   }
   else if(vm.count("mirror")){
     bool isVertical = ((vm["mirror"].as<char>() == 'v') ? true:false);
@@ -83,11 +101,14 @@ int main(int argc, char **argv){
   }
   else if(vm.count("sqBlur")){
     int amount = vm["amount"].as<int>();
-    h_out = square_blur(d_in, numRows, numCols, 21, 5.0f);    //TODO: Change these parameters.
+    if(amount % 2 == 0)
+      amount++;
+    h_out = square_blur(d_in, numRows, numCols, amount); 
   }
   else if(vm.count("square")){
-    string color = vm["color"].as<string>();
-    h_out = square_image(d_in, numRows, numCols, make_uchar4(255,255,255,255)); //TODO: Setting the color.
+    string color_hex = vm["color"].as<string>();
+    uchar4 color = hex_to_uchar4_color(color_hex);
+    h_out = square_image(d_in, numRows, numCols, color); 
   }
   else if(vm.count("filter")){
     string filter_name = vm["filter"].as<string>();

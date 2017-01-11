@@ -27,9 +27,9 @@ Option | Short name | Arguments | Function
  --filter |-f|name        |For applying filters.
  --amount |-a|value       |For setting blur or square blur amount
  --color  |-c|name        |For specifying color used in the operation like squaring.
- 
- 
- <h2>Outputs</h2>
+----------|--|-----------|------
+
+## Outputs 
  
  1. Input image ![Peacock](/images/peacock.jpg)
  2. Square operations
