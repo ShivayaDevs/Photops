@@ -5,7 +5,8 @@
 
 /* Image squaring operations.*/
 
-__global__ void square_kernel(uchar4 *d_in, uchar4 * d_out, size_t numRows, size_t numCols, uchar4 color){
+//kernel to square an image
+__global__ void kernel_square(uchar4 *d_in, uchar4 * d_out, size_t numRows, size_t numCols, uchar4 color){
   int x = blockDim.x * blockIdx.x + threadIdx.x;
   int y = blockDim.y * blockIdx.y + threadIdx.y;
  
@@ -23,51 +24,69 @@ __global__ void square_kernel(uchar4 *d_in, uchar4 * d_out, size_t numRows, size
   else{
     int w = (numRows - numCols) / 2 ;
     if(x >= w && x < width - w)
-      d_out[y*width + x] = d_in[y*numCols + x];
+      d_out[y*width + x] = d_in[y*numCols + x - w];
     else
       d_out[y*width + x] = color;
   }
 }
 
-__global__ 
-void square_blur(const uchar4* d_in, uchar4* d_sq, const float* const d_filter, const int filterWidth, 
-                 size_t numRows, size_t numCols,  size_t n_numRows, size_t n_numCols)
+
+//kernel to square blur an image
+__global__
+void kernel_blur(uchar4 *d_in, uchar4 *d_blur, uchar4 *d_out, size_t numRows, size_t numCols)
 {
-	int y = blockDim.x*blockIdx.x + threadIdx.x;  
-	int x = blockDim.y*blockIdx.y + threadIdx.y;	
-	int index = x*numRows + y;								//previous index of pixel
-	int n_index = x*n_numRows + y;						//new index of pixel
+  int width = (numCols > numRows)? numCols: numRows;
+  int x = blockDim.x * blockIdx.x + threadIdx.x;
+  int y = blockDim.y * blockIdx.y + threadIdx.y;
 
-	if(y >= n_numCols || x >= n_numRows)  		//check out of bound
-	  return;
+  //check out of bound
+  if(x >= width || y >= width)
+    return; 
 
-	if(y < numCols && x < numRows)								
-	  d_sq[n_index] = d_in[index];
-	else
-	{
-	  int prev_x = x - (n_numRows - numRows);		//finding pixel to blurr
-	  int prev_y = y - (n_numCols - numCols);
-	  int prev_index = prev_x * numRows + prev_y;
+  if(numCols > numRows)
+  {
+    int scaleFactor = numCols/numRows + 1;
+    int shiftFactor = ( (numCols * scaleFactor) - width ) / 2 ;
+    int w = (numCols - numRows) / 2;
 
-	  uchar4 sum = make_uchar4(0,0,0,225);
-    for(int px = 0; px < filterWidth; px++)		//calculating new pixel intensity
-	  {
-	    for(int py = 0; py < filterWidth; py++)
-	    {
-       	int row = x + px - (filterWidth/2);
-        int col = y + py - (filterWidth/2);
-        row = min( max(0,row), static_cast<unsigned int>(numCols-1));
-        col = min( max(0,col), static_cast<unsigned int>(numRows-1));
-        sum.x+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].x ) );
-        sum.y+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].y ) );
-        sum.z+= d_filter[py*filterWidth+px] * ( static_cast<float>( d_in[prev_index].z ) );
-	    }
-  	}
+    if(y >= w && y < width - w)
+      d_out[y * width + x] = d_in[(y - w) * numCols + x];
+    else
+      d_out[y * width + x] = d_blur[y * numCols * scaleFactor + (x + shiftFactor)];
 
-  	d_sq[n_index] = sum;
-	}
+  }
+  else
+  {
+    int scaleFactor = numRows/numCols + 1;
+    int shiftFactor = ((numRows * scaleFactor) - width) / 2;
+    int w = (numRows - numCols) / 2;
+
+    if(x >= w && x < width - w)
+      d_out[y * width + x] = d_in[y * numCols + (x - w)];
+    else
+      d_out[y * width + x] = d_blur[(y + shiftFactor) * numCols * scaleFactor + x];
+
+  }
 }
 
+//kernel to zoom an image by scaling factor
+__global__
+void kernel_zoom(uchar4 * d_image, uchar4 * d_out, size_t numRows, size_t numCols, int scaleFactor)
+{
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if(x >= (numCols * scaleFactor) || y >= (numRows * scaleFactor))
+    return ;
+
+  //calculating nearest pixel
+  int nearest_x = x / scaleFactor;
+  int nearest_y = y / scaleFactor;
+
+  d_out[y * numCols * scaleFactor + x] = d_image[nearest_y * numCols + nearest_x];
+}
+
+// function to square an image
 uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar4 color){
 
   size_t width = (numCols > numRows)? numCols : numRows;
@@ -76,54 +95,63 @@ uchar4* square_image(uchar4* const d_in, size_t &numRows, size_t &numCols, uchar
   cudaMalloc((void **) &d_out, width * width * sizeof(uchar4));
 
   dim3 block_size(16, 16, 1);
-  dim3 grid_size(width/16 + 1, width/16 + 1, 1);
+  dim3 grid_size(width/block_size.x + 1, width/block_size.y + 1, 1);
 
-  square_kernel<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols, color);
+  kernel_square<<<grid_size, block_size>>>(d_in, d_out, numRows, numCols, color);
 
   numRows = numCols = width;
+
   uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
   cudaMemcpy(h_out, d_out, width * width * sizeof(uchar4), cudaMemcpyDeviceToHost);
   cudaFree(d_out);
   return h_out;   
 }
 
-// TODO: 
-//   1. Modify this to have lesser parameters.
-//   2. Make it work.
-//   3. Also modify the parameters in main
-uchar4* square_blur(uchar4* d_image, size_t numRows, size_t numCols, size_t &n_numRows, size_t &n_numCols, int blurKernelWidth, float blurKernelSigma)
+
+// function to square blur an image
+uchar4* square_blur(uchar4* d_image, size_t &numRows, size_t &numCols, int blurKernelWidth, float blurKernelSigma)
 {
-	size_t newSize;
-  const dim3 blockSize(64, 64, 1);  
-  const dim3 gridSize(numRows/blockSize.x+1, numCols/blockSize.y+1,1);  
-  
-  if(numCols > numRows)		//setting new cols and rows size
-  {
-    n_numRows = numCols;
-    n_numCols = numCols;
-  }
+  dim3 threads(16, 16, 1);
+
+  // calculating scaling factor
+  int scaleFactor;
+  if(numCols > numRows)
+    scaleFactor = numCols/numRows + 1;
   else
-  {
-    n_numCols = numRows; 
-    n_numRows = numRows;
-  }
+    scaleFactor = numRows/numCols + 1;
+
+  //new size: zoom matrice
+  size_t newSize = numCols * numRows * scaleFactor * scaleFactor;
   
-  newSize = n_numRows * n_numCols;
-  uchar4* d_sq;
-  cudaMalloc(&d_sq, sizeof(uchar4)*newSize);
+  dim3 zoom_grid(numCols * scaleFactor / threads.x + 1, numRows * scaleFactor / threads.y + 1, 1);
+
+  //device zoom copy
+  uchar4 *d_zoom;
+  cudaMalloc(&d_zoom, sizeof(uchar4) * newSize);
   
-  /*setting the filter: we need to change blurkernelWidth and blurKernelSigma to change the filter */
-  float* h_filter;
-  int filterWidth;
-  setFilter(&h_filter, &filterWidth, blurKernelWidth, blurKernelSigma);
+  kernel_zoom<<<zoom_grid, threads>>>(d_image, d_zoom, numRows, numCols, scaleFactor);
 
-  float *d_filter; 	//creating device copy of h_filter
-  cudaMalloc(&d_filter, sizeof(float) * blurKernelWidth * blurKernelWidth);
-  cudaMemcpy(d_filter, h_filter, sizeof(float) * blurKernelWidth * blurKernelWidth, cudaMemcpyHostToDevice);
+  // blurring zoomed image
+  uchar4 *h_blur = new uchar4[sizeof(uchar4) * newSize];
+  h_blur = blur_ops(d_zoom, numRows * scaleFactor, numCols * scaleFactor, blurKernelWidth, blurKernelSigma);
 
-  square_blur<<<gridSize, blockSize>>>(d_image, d_sq, d_filter, filterWidth, numRows, numCols, n_numRows, n_numCols);
+  // device copy of zoom blur
+  uchar4 * d_blur;
+  cudaMalloc(&d_blur, sizeof(uchar4) * newSize);
+  cudaMemcpy(d_blur, h_blur, sizeof(uchar4) * newSize, cudaMemcpyHostToDevice);
 
-  uchar4 *h_out = new uchar4[n_numRows * n_numCols * sizeof(uchar4)];
-  cudaMemcpy(h_out, d_sq, n_numRows * n_numCols * sizeof(uchar4), cudaMemcpyDeviceToHost);
-  return h_out; 
+  size_t width = (numCols > numRows)? numCols: numRows;
+  
+  dim3 blocks(width/threads.x + 1, width/threads.y + 1, 1);
+
+  uchar4 *d_out;
+  cudaMalloc(&d_out, sizeof(uchar4) * width * width);
+
+  kernel_blur<<<blocks, threads>>>(d_image, d_blur, d_out, numRows, numCols);
+
+  numCols = numRows = width;
+
+  uchar4 *h_out = new uchar4[width * width * sizeof(uchar4)];
+  cudaMemcpy(h_out, d_out, sizeof(uchar4) * width * width, cudaMemcpyDeviceToHost);
+  return h_out;
 }
