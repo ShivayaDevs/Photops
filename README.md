@@ -13,8 +13,9 @@ The program can be executed using the command line operations.
 
 2. Specify the input file
 ```
-  ./photops path_to_input_file [option] [argument(s)]... 
+./photops path_to_input_file [option] [argument(s)]
 ```
+
 3. Command line options
 
 Option | Short name | Arguments | Function
@@ -27,7 +28,6 @@ Option | Short name | Arguments | Function
  --filter |-f|name        |For applying filters.
  --amount |-a|value       |For setting blur or square blur amount
  --color  |-c|name        |For specifying color used in the operation like squaring.
-----------|--|-----------|------
 
 ## Outputs 
  
